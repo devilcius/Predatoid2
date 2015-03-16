@@ -89,7 +89,9 @@ public class CurrentMusicTrackInfoActivity extends Activity {
             // Perform a query on the content resolver. The URI we're passing specifies that we
 // want to query for all audio media on external storage (e.g. SD card)
             Cursor cur = mContentResolver.query(uri, null,
-                    MediaStore.Audio.Media.IS_MUSIC + " = 1 AND " + MediaStore.Audio.Media.ARTIST + " = '" + artist + "'"
+                    MediaStore.Audio.Media.IS_MUSIC + " = 1 AND " + MediaStore.Audio.Media.ARTIST + " = '" + artist + "'" +
+                            " AND " + MediaStore.Audio.Media.ALBUM + "= '" + album + "'" +
+                            " AND " + MediaStore.Audio.Media.TITLE + "= '" + track + "'"
                     , null, null);
             Log.i(TAG, "Query finished. " + (cur == null ? "Returned NULL." : "Returned a cursor."));
             if (cur == null) {
@@ -126,16 +128,6 @@ public class CurrentMusicTrackInfoActivity extends Activity {
 // retrieve the indices of the columns where the ID, title, etc. of the song are
             Log.i(TAG, "Title column index: " + String.valueOf(titleColumn));
             Log.i(TAG, "ID column index: " + String.valueOf(titleColumn));
-
-
-
-            String filename = intent.getStringExtra("filename");
-            String albumId = intent.getStringExtra("albumId");
-            String year = intent.getStringExtra(MediaStore.Audio.AudioColumns.YEAR);
-            String size = intent.getStringExtra(MediaStore.Audio.AudioColumns.SIZE);
-
-            //en action metachanged recoge duration
-            Long duration = intent.getLongExtra(MediaStore.Audio.AudioColumns.DURATION, 0);
             Toast.makeText(CurrentMusicTrackInfoActivity.this, track, Toast.LENGTH_SHORT).show();
 
         }
