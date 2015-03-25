@@ -2,7 +2,6 @@ package com.predatum.predatoid;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
-import android.content.ClipData;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Context;
@@ -15,8 +14,12 @@ import android.provider.MediaStore;
 import android.util.Log;
 import android.widget.Toast;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Date;
+import java.text.Format;
+import java.text.SimpleDateFormat;
 
 
 /**
@@ -27,7 +30,7 @@ public class CurrentMusicTrackInfoActivity extends Activity {
     public static final String SERVICECMD = "com.android.music.musicservicecommand";
     final String TAG = "MusicRetriever";
     ContentResolver mContentResolver;
-    List<Item> mItems = new ArrayList<Item>();
+    List<AudioFile> mItems = new ArrayList<AudioFile>();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -111,19 +114,23 @@ public class CurrentMusicTrackInfoActivity extends Activity {
             int albumColumn = cur.getColumnIndex(MediaStore.Audio.Media.ALBUM);
             int durationColumn = cur.getColumnIndex(MediaStore.Audio.Media.DURATION);
             int idColumn = cur.getColumnIndex(MediaStore.Audio.Media._ID);
+            int filePathColumn = cur.getColumnIndex(MediaStore.Audio.Media.DATA);
             // add each song to mItems
             do {
                 Log.i(TAG, "ID: " + cur.getString(idColumn) + " Title: " + cur.getString(titleColumn));
-                mItems.add(new Item(
+                mItems.add(new AudioFile(
                         cur.getLong(idColumn),
                         cur.getString(artistColumn),
                         cur.getString(titleColumn),
                         cur.getString(albumColumn),
-                        cur.getLong(durationColumn)));
+                        cur.getLong(durationColumn),
+                        cur.getString(filePathColumn)));
             } while (cur.moveToNext());
             Log.i(TAG, "Done querying media. MusicRetriever is ready.");
-
-
+            File audioFile = new File(String.valueOf(filePathColumn));
+            Date fileDate = new Date(audioFile.lastModified());
+            Format formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            SongExtraInfo songExtraInfo = new SongExtraInfo(audioFile);
 
 // retrieve the indices of the columns where the ID, title, etc. of the song are
             Log.i(TAG, "Title column index: " + String.valueOf(titleColumn));
@@ -133,18 +140,20 @@ public class CurrentMusicTrackInfoActivity extends Activity {
         }
     };
 
-    public static class Item {
+    public static class AudioFile {
         long id;
         String artist;
         String title;
         String album;
         long duration;
-        public Item(long id, String artist, String title, String album, long duration) {
+        String filePath;
+        public AudioFile(long id, String artist, String title, String album, long duration, String filePath) {
             this.id = id;
             this.artist = artist;
             this.title = title;
             this.album = album;
             this.duration = duration;
+            this.filePath = filePath;
         }
         public long getId() {
             return id;
