@@ -22,6 +22,7 @@ import java.text.Format;
 import java.text.SimpleDateFormat;
 
 
+
 /**
  * Created by marcos on 3/13/15.
  */
@@ -86,16 +87,18 @@ public class CurrentMusicTrackInfoActivity extends Activity {
             String artist = intent.getStringExtra("artist");
             String album = intent.getStringExtra("album");
 
+            String queryString = MediaStore.Audio.Media.IS_MUSIC + " = 1" +
+                    " AND " + MediaStore.Audio.Media.ARTIST + " = ?" +
+                    " AND " + MediaStore.Audio.Media.ALBUM + " = ?" +
+                    " AND " + MediaStore.Audio.Media.TITLE + " = ?";
+            String[] queryStringArgs = {artist, album, track};
+
             Uri uri = android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
             Log.i(TAG, "Querying media...");
             Log.i(TAG, "URI: " + uri.toString());
             // Perform a query on the content resolver. The URI we're passing specifies that we
 // want to query for all audio media on external storage (e.g. SD card)
-            Cursor cur = mContentResolver.query(uri, null,
-                    MediaStore.Audio.Media.IS_MUSIC + " = 1 AND " + MediaStore.Audio.Media.ARTIST + " = '" + artist + "'" +
-                            " AND " + MediaStore.Audio.Media.ALBUM + "= '" + album + "'" +
-                            " AND " + MediaStore.Audio.Media.TITLE + "= '" + track + "'"
-                    , null, null);
+            Cursor cur = mContentResolver.query(uri, null, queryString, queryStringArgs, null);
             Log.i(TAG, "Query finished. " + (cur == null ? "Returned NULL." : "Returned a cursor."));
             if (cur == null) {
 // Query failed...
@@ -127,15 +130,18 @@ public class CurrentMusicTrackInfoActivity extends Activity {
                         cur.getString(filePathColumn)));
             } while (cur.moveToNext());
             Log.i(TAG, "Done querying media. MusicRetriever is ready.");
-            File audioFile = new File(String.valueOf(filePathColumn));
+            File audioFile = new File(mItems.get(0).getFilePath());
             Date fileDate = new Date(audioFile.lastModified());
             Format formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             SongExtraInfo songExtraInfo = new SongExtraInfo(audioFile);
-
+            String preset = songExtraInfo.getLamePreset();
+            Long bitrate = songExtraInfo.getBitrate();
+            String genre = songExtraInfo.getSongGenre();
 // retrieve the indices of the columns where the ID, title, etc. of the song are
             Log.i(TAG, "Title column index: " + String.valueOf(titleColumn));
             Log.i(TAG, "ID column index: " + String.valueOf(titleColumn));
             Toast.makeText(CurrentMusicTrackInfoActivity.this, track, Toast.LENGTH_SHORT).show();
+            cur.close();
 
         }
     };
@@ -169,6 +175,9 @@ public class CurrentMusicTrackInfoActivity extends Activity {
         }
         public long getDuration() {
             return duration;
+        }
+        public String getFilePath() {
+            return filePath;
         }
         public Uri getURI() {
             return ContentUris.withAppendedId(
