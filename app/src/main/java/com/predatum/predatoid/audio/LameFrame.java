@@ -1,4 +1,4 @@
-package com.predatum.predatoid;
+package com.predatum.predatoid.audio;
 
 import org.jaudiotagger.audio.generic.Utils;
 import org.jaudiotagger.tag.id3.valuepair.TextEncoding;

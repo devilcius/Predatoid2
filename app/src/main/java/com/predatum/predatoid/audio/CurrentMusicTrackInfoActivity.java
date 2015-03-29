@@ -1,4 +1,4 @@
-package com.predatum.predatoid;
+package com.predatum.predatoid.audio;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;

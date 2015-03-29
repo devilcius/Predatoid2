@@ -1,4 +1,4 @@
-package com.predatum.predatoid;
+package com.predatum.predatoid.audio;
 
 import org.jaudiotagger.audio.exceptions.InvalidAudioFrameException;
 import org.jaudiotagger.audio.mp3.MP3File;
