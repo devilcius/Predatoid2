@@ -34,8 +34,8 @@ import org.apache.http.util.EntityUtils;
 public class Predatum {
 
 	private static final String PREDATUM_URL = "http://predatum.net";
-	private static final String PREDATUM_LOGIN_CONTEXT = "/api/user/authenticate";
-	private static final String PREDATUM_SONG_POST_CONTEXT = "/api/scrobbler";
+	private static final String PREDATUM_LOGIN_CONTEXT = "user/authenticate";
+	private static final String PREDATUM_SONG_POST_CONTEXT = "scrobbler";
 
 	private static Predatum instance = null;
 	private static int currentSongId = -1;
@@ -51,16 +51,14 @@ public class Predatum {
 	}
 
 	public void authenticateToPredatum(final String userName,
-			final String userPassword, final Context context) {
+			final String userPassword, final Context context) throws JSONException  {
 
 		final PersistentCookieStore predatumPersistentCookieStore = new PersistentCookieStore(
 				context);
 		if (!userIsLoggedIn(predatumPersistentCookieStore)) {
 			this.login(userName, userPassword, context);
 		} else {
-			AsyncHttpClient client = new AsyncHttpClient();
-			client.setCookieStore(predatumPersistentCookieStore);
-			client.post(PREDATUM_URL + PREDATUM_LOGIN_CONTEXT, null,
+            PredatumRestClient.post(PREDATUM_LOGIN_CONTEXT, null,
                     new JsonHttpResponseHandler() {
 
                         @Override
@@ -85,9 +83,16 @@ public class Predatum {
 							}
 						}
                         @Override
+                        public void onSuccess(int statusCode, Header[] headers, JSONArray timeline) {
+                            // Do something with the response
+                            Log.i(getClass().getSimpleName(), "entraaaaa!!!! ");
+                        }
+                        @Override
                         public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable
                                 error)
                         {
+                            Log.i(getClass().getSimpleName(), "async task failed!!!! " + error.getMessage());
+                            Log.i(getClass().getSimpleName(), "Response body " + responseBody.toString());
                             error.printStackTrace(System.out);
                         }
 
@@ -95,10 +100,11 @@ public class Predatum {
                         public void onStart()
                         {
                             String buh = "buh";
+                            Log.i(getClass().getSimpleName(), "async task started!!!!");
 
                         }
 
-					});
+					}, predatumPersistentCookieStore);
 		}
 	}
 

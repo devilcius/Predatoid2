@@ -10,9 +10,9 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Intent currentMusicTrackInfoIntent = new Intent(this, CurrentMusicTrackInfoService.class);
-        currentMusicTrackInfoIntent.setAction("com.predatum.predatoid.action.UPDATE_PREDATUM");
-        startService(currentMusicTrackInfoIntent);
+        Intent musicTrackerService = new Intent(this, MusicTrackerService.class);
+        musicTrackerService.setAction("com.predatum.predatoid.action.UPDATE_PREDATUM");
+        startService(musicTrackerService);
     }
 
 /*    @Override

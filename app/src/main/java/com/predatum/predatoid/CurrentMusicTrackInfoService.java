@@ -6,6 +6,9 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 import android.widget.Toast;
+
+import org.json.JSONException;
+
 /**
  * An {@link IntentService} subclass for handling asynchronous task requests in
  * a service on a separate handler thread.
@@ -75,7 +78,11 @@ public class CurrentMusicTrackInfoService extends IntentService {
                             Toast.LENGTH_SHORT).show();
                     notificationMessage = "Missing credentials. Update your settings.";
                 } else {
-                    Predatum.getInstance().authenticateToPredatum(username, password, getApplicationContext());
+                    try {
+                        Predatum.getInstance().authenticateToPredatum(username, password, getApplicationContext());
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
                     notificationMessage = "You're logged in predatum as " + username;
                 }
 
