@@ -5,14 +5,15 @@ import android.content.Context;
 import android.content.res.Configuration;
 import android.os.Build;
 import android.os.Bundle;
-import android.preference.ListPreference;
+import android.preference.EditTextPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceCategory;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
+import android.widget.Toast;
 
-
+import org.json.JSONException;
 
 import java.util.List;
 
@@ -35,7 +36,117 @@ public class SettingsActivity extends PreferenceActivity {
      * shown on tablets.
      */
     private static final boolean ALWAYS_SIMPLE_PREFS = false;
+    private static final String ENABLED_KEY = "enabled";
+    private static final String PREDATUM_USERNAME_KEY = "predatum_username";
+    private static final String PREDATUM_PASSWORD_KEY = "predatum_password";
+    /**
+     * A preference value change listener that updates the preference's summary
+     * to reflect its new value.
+     */
+    private static Preference.OnPreferenceChangeListener sCheckUserCredentialsListener = new Preference.OnPreferenceChangeListener() {
+        @Override
+        public boolean onPreferenceChange(Preference preference, Object value) {
 
+            if ("enabled".equals(preference.getKey()) &&
+                    (boolean) value) {
+                PreferenceManager preferenceManager = preference.getPreferenceManager();
+                EditTextPreference username = (EditTextPreference) preferenceManager.findPreference(PREDATUM_USERNAME_KEY);
+                EditTextPreference password = (EditTextPreference) preferenceManager.findPreference(PREDATUM_PASSWORD_KEY);
+                if ((password.getText() == null) || (username.getText() == null)) {
+                    Toast.makeText(preference.getContext(), "Set your predatum credentials first",
+                            Toast.LENGTH_SHORT).show();
+                    preference.setDefaultValue(false);
+
+                    return false;
+                } else {
+                    try {
+                        Predatum.getInstance().authenticateToPredatum(username.getText(), password.getText(), preference.getContext());
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+
+            return true;
+        }
+    };
+    /**
+     * A preference value change listener that updates the preference's summary
+     * to reflect its new value.
+     */
+    private static Preference.OnPreferenceChangeListener sBindPreferenceSummaryToValueListener = new Preference.OnPreferenceChangeListener() {
+        @Override
+        public boolean onPreferenceChange(Preference preference, Object value) {
+
+
+            String stringValue = value.toString();
+            // For all other preferences, set the summary to the value's
+            // simple string representation.
+            preference.setSummary(stringValue);
+
+            return true;
+        }
+    };
+
+    /**
+     * Helper method to determine if the device has an extra-large screen. For
+     * example, 10" tablets are extra-large.
+     */
+    private static boolean isXLargeTablet(Context context) {
+        return (context.getResources().getConfiguration().screenLayout
+                & Configuration.SCREENLAYOUT_SIZE_MASK) >= Configuration.SCREENLAYOUT_SIZE_XLARGE;
+    }
+
+    /**
+     * Determines whether the simplified settings UI should be shown. This is
+     * true if this is forced via {@link #ALWAYS_SIMPLE_PREFS}, or the device
+     * doesn't have newer APIs like {@link PreferenceFragment}, or the device
+     * doesn't have an extra-large screen. In these cases, a single-pane
+     * "simplified" settings UI should be shown.
+     */
+    private static boolean isSimplePreferences(Context context) {
+        return ALWAYS_SIMPLE_PREFS
+                || Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB
+                || !isXLargeTablet(context);
+    }
+
+    /**
+     * Binds a preference's summary to its value. More specifically, when the
+     * preference's value is changed, its summary (line of text below the
+     * preference title) is updated to reflect the value. The summary is also
+     * immediately updated upon calling this method. The exact display format is
+     * dependent on the type of preference.
+     *
+     * @see #sBindPreferenceSummaryToValueListener
+     */
+    private static void bindPreferenceSummaryToValue(Preference preference) {
+        // Set the listener to watch for value changes.
+        preference.setOnPreferenceChangeListener(sBindPreferenceSummaryToValueListener);
+
+        // Trigger the listener immediately with the preference's
+        // current value.
+        if (ENABLED_KEY.equals(preference.getKey())) {
+            sBindPreferenceSummaryToValueListener.onPreferenceChange(preference,
+                    PreferenceManager
+                            .getDefaultSharedPreferences(preference.getContext())
+                            .getBoolean(ENABLED_KEY, false));
+        } else {
+            sBindPreferenceSummaryToValueListener.onPreferenceChange(preference,
+                    PreferenceManager
+                            .getDefaultSharedPreferences(preference.getContext())
+                            .getString(preference.getKey(), ""));
+        }
+    }
+
+    private static void checkUserCredentials(Preference preference) {
+        // Set the listener to watch for value changes.
+        preference.setOnPreferenceChangeListener(sCheckUserCredentialsListener);
+        sCheckUserCredentialsListener.onPreferenceChange(preference,
+                    PreferenceManager
+                            .getDefaultSharedPreferences(preference.getContext())
+                            .getBoolean(ENABLED_KEY, false));
+    }
 
     @Override
     protected void onPostCreate(Bundle savedInstanceState) {
@@ -66,12 +177,8 @@ public class SettingsActivity extends PreferenceActivity {
         getPreferenceScreen().addPreference(predatoidHeader);
         addPreferencesFromResource(R.xml.pref_login);
 
-        // Bind the summaries of EditText/List/Dialog/Ringtone preferences to
-        // their values. When their values change, their summaries are updated
-        // to reflect the new value, per the Android Design guidelines.
-        //bindPreferenceSummaryToValue(findPreference("enable_at_startup"));
-        bindPreferenceSummaryToValue(findPreference("predatum_username"));
-        bindPreferenceSummaryToValue(findPreference("predatum_password"));
+        bindPreferenceSummaryToValue(findPreference(PREDATUM_USERNAME_KEY));
+        checkUserCredentials(findPreference(ENABLED_KEY));
     }
 
     /**
@@ -83,28 +190,6 @@ public class SettingsActivity extends PreferenceActivity {
     }
 
     /**
-     * Helper method to determine if the device has an extra-large screen. For
-     * example, 10" tablets are extra-large.
-     */
-    private static boolean isXLargeTablet(Context context) {
-        return (context.getResources().getConfiguration().screenLayout
-                & Configuration.SCREENLAYOUT_SIZE_MASK) >= Configuration.SCREENLAYOUT_SIZE_XLARGE;
-    }
-
-    /**
-     * Determines whether the simplified settings UI should be shown. This is
-     * true if this is forced via {@link #ALWAYS_SIMPLE_PREFS}, or the device
-     * doesn't have newer APIs like {@link PreferenceFragment}, or the device
-     * doesn't have an extra-large screen. In these cases, a single-pane
-     * "simplified" settings UI should be shown.
-     */
-    private static boolean isSimplePreferences(Context context) {
-        return ALWAYS_SIMPLE_PREFS
-                || Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB
-                || !isXLargeTablet(context);
-    }
-
-    /**
      * {@inheritDoc}
      */
     @Override
@@ -113,57 +198,6 @@ public class SettingsActivity extends PreferenceActivity {
         if (!isSimplePreferences(this)) {
             loadHeadersFromResource(R.xml.pref_headers, target);
         }
-    }
-
-    /**
-     * A preference value change listener that updates the preference's summary
-     * to reflect its new value.
-     */
-    private static Preference.OnPreferenceChangeListener sBindPreferenceSummaryToValueListener = new Preference.OnPreferenceChangeListener() {
-        @Override
-        public boolean onPreferenceChange(Preference preference, Object value) {
-            String stringValue = value.toString();
-
-            if (preference instanceof ListPreference) {
-                // For list preferences, look up the correct display value in
-                // the preference's 'entries' list.
-                ListPreference listPreference = (ListPreference) preference;
-                int index = listPreference.findIndexOfValue(stringValue);
-
-                // Set the summary to reflect the new value.
-                preference.setSummary(
-                        index >= 0
-                                ? listPreference.getEntries()[index]
-                                : null);
-            } else {
-                // For all other preferences, set the summary to the value's
-                // simple string representation.
-                preference.setSummary(stringValue);
-            }
-
-            return true;
-        }
-    };
-
-    /**
-     * Binds a preference's summary to its value. More specifically, when the
-     * preference's value is changed, its summary (line of text below the
-     * preference title) is updated to reflect the value. The summary is also
-     * immediately updated upon calling this method. The exact display format is
-     * dependent on the type of preference.
-     *
-     * @see #sBindPreferenceSummaryToValueListener
-     */
-    private static void bindPreferenceSummaryToValue(Preference preference) {
-        // Set the listener to watch for value changes.
-        preference.setOnPreferenceChangeListener(sBindPreferenceSummaryToValueListener);
-
-        // Trigger the listener immediately with the preference's
-        // current value.
-        sBindPreferenceSummaryToValueListener.onPreferenceChange(preference,
-                PreferenceManager
-                        .getDefaultSharedPreferences(preference.getContext())
-                        .getString(preference.getKey(), ""));
     }
 
     /**
@@ -181,7 +215,7 @@ public class SettingsActivity extends PreferenceActivity {
             // to their values. When their values change, their summaries are
             // updated to reflect the new value, per the Android Design
             // guidelines.
-            bindPreferenceSummaryToValue(findPreference("enable_at_startup"));
+            bindPreferenceSummaryToValue(findPreference(ENABLED_KEY));
         }
     }
 
@@ -200,8 +234,8 @@ public class SettingsActivity extends PreferenceActivity {
             // to their values. When their values change, their summaries are
             // updated to reflect the new value, per the Android Design
             // guidelines.
-            bindPreferenceSummaryToValue(findPreference("predatum_username"));
-            bindPreferenceSummaryToValue(findPreference("predatum_password"));
+            bindPreferenceSummaryToValue(findPreference(PREDATUM_USERNAME_KEY));
+            bindPreferenceSummaryToValue(findPreference(PREDATUM_PASSWORD_KEY));
         }
     }
 }

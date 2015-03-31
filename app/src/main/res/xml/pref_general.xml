@@ -1,8 +1,8 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <CheckBoxPreference
-        android:key="enable_at_startup"
-        android:title="@string/pref_title_enabled_at_startup"
-        android:summary="@string/pref_description_enabled_at_startup"
-        android:defaultValue="true" />
+    <SwitchPreference
+        android:key="enabled"
+        android:title="@string/pref_title_enabled"
+        android:summary="@string/pref_description_enabled"
+        android:defaultValue="false" />
 </PreferenceScreen>

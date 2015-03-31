@@ -5,9 +5,9 @@
     <!-- Example General settings -->
     <string name="pref_header_general">General</string>
 
-    <string name="pref_title_enabled_at_startup">Enable at startup</string>
-    <string name="pref_description_enabled_at_startup">Predatoid will be
-        enabled when phone boots
+    <string name="pref_title_enabled">Enable</string>
+    <string name="pref_description_enabled">Predatoid will track your
+        music played
     </string>
 
     <string name="pref_predatum_login_username">Username</string>
