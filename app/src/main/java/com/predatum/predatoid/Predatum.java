@@ -19,6 +19,7 @@ import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.cookie.Cookie;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.protocol.BasicHttpContext;
@@ -66,7 +67,7 @@ public class Predatum {
                 context);
         if (!userIsLoggedIn(predatumPersistentCookieStore)) {
             this.login(userName, userPassword, context);
-        } else { //double check user is logged in
+        } else { //double check user is indeed logged in
             PredatumRestClient.get(PREDATUM_USER_CHECK, null, this.getPredatoidUserAgent(context),
                     new JsonHttpResponseHandler() {
 
@@ -98,58 +99,79 @@ public class Predatum {
                             Log.i(getClass().getSimpleName(), "async task failed!!!! " + error.getMessage());
                             if(responseBody != null) {
                                 String errorMessage = new String(responseBody);
-                                Log.i(getClass().getSimpleName(), "Response body " + errorMessage);
+                                Log.e(getClass().getSimpleName(), "Response body " + errorMessage);
                             }
                             error.printStackTrace(System.out);
-                        }
-
-                        @Override
-                        public void onStart() {
-                            String buh = "buh";
-                            Log.i(getClass().getSimpleName(), "async task started!!!!");
-
                         }
 
                     }, predatumPersistentCookieStore);
         }
     }
 
-    public void updateNowPlaying(HashMap<String, Object> song, Context context)
-            throws ClientProtocolException, IOException {
+    public void updateNowPlaying(HashMap<String, Object> song, final Context context)
+            throws ClientProtocolException, IOException, JSONException {
 
         Iterator<Entry<String, Object>> iterator = song.entrySet().iterator();
-        List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
+        final List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
+
+        JSONObject jsonParams = new JSONObject();
+        StringEntity entity = new StringEntity(jsonParams.toString());
+        final PersistentCookieStore predatumPersistentCookieStore = new PersistentCookieStore(
+                context);
 
         while (iterator.hasNext()) {
             @SuppressWarnings("rawtypes")
             HashMap.Entry pairs = (HashMap.Entry) iterator.next();
+            jsonParams.put(pairs.getKey().toString(), pairs.getValue().toString());
             nameValuePairs.add(new BasicNameValuePair(
                     pairs.getKey().toString(), pairs.getValue().toString()));
             iterator.remove(); // avoids a ConcurrentModificationException
         }
 
-        JSONObject serverResponse = predatumPost(nameValuePairs,
-                PREDATUM_SONG_POST_CONTEXT, context);
-        try {
+        PredatumRestClient.post(context, PREDATUM_SONG_POST_CONTEXT, entity, this.getPredatoidUserAgent(context),
+                new JsonHttpResponseHandler() {
 
-            if (serverResponse.has("processed")) {
-                // process different response
-                if (serverResponse.has("np_data")) {
-                    Log.d(getClass().getSimpleName(),
-                            serverResponse.getString("np_data"));
-                    currentSongId = serverResponse.getJSONObject("np_data")
-                            .getInt("user_track");
-                }
-            } else {
-                Toast toast = Toast.makeText(context,
-                        serverResponse.getString("error"), Toast.LENGTH_LONG);
-                toast.show();
-            }
+                    @Override
+                    public void onSuccess(int statusCode, Header[] headers, JSONObject message) {
+                        try {
+                            if (!message.getBoolean("error")) {
+                                if (message.has("np_data")) {
+                                    Log.d(getClass().getSimpleName(),
+                                            message.getString("np_data"));
+                                    currentSongId = message.getJSONObject("np_data")
+                                            .getInt("user_track");
+                                }
+                            } else if (message.getBoolean("error") && message.getJSONArray("message").getString(0) == "login_error") { //cookie not valid
+                                Toast toast = Toast.makeText(context,
+                                        "You're not authenticated, check your settings",
+                                        Toast.LENGTH_LONG);
+                                toast.show();
+                            } else {
+                                Toast toast = Toast.makeText(context,
+                                        message.getJSONArray("message").getString(0),
+                                        Toast.LENGTH_LONG);
+                                toast.show();
+                            }
 
-        } catch (JSONException jsonException) {
-            Log.e(TAG,
-                    jsonException.getMessage());
-        }
+                        } catch (JSONException ex) {
+                            Log.e(getClass().getSimpleName(),
+                                    ex.getMessage());
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable
+                            error) {
+                        Log.i(getClass().getSimpleName(), "async task failed!!!! " + error.getMessage());
+                        if(responseBody != null) {
+                            String errorMessage = new String(responseBody);
+                            Log.e(getClass().getSimpleName(), "Response body " + errorMessage);
+                        }
+                        error.printStackTrace(System.out);
+                    }
+
+                }, predatumPersistentCookieStore
+        );
     }
 
     private boolean userIsLoggedIn(PersistentCookieStore cookieStore) {

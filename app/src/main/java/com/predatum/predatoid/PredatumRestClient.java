@@ -6,6 +6,8 @@ import android.os.Build;
 
 import com.loopj.android.http.*;
 
+import org.apache.http.entity.StringEntity;
+
 /**
  * Created by mpena on 3/30/2015.
  */
@@ -26,6 +28,11 @@ public class PredatumRestClient
         client.setCookieStore(cookieStore);
         client.setUserAgent(userAgent);
         client.post(getAbsoluteUrl(url), params, responseHandler);
+    }
+    public static void post(Context context, String url, StringEntity entity, String userAgent, AsyncHttpResponseHandler responseHandler, PersistentCookieStore cookieStore) {
+        client.setCookieStore(cookieStore);
+        client.setUserAgent(userAgent);
+        client.post(context, getAbsoluteUrl(url), entity, "application/json", responseHandler);
     }
     public static void put(String url, RequestParams params, String userAgent, AsyncHttpResponseHandler responseHandler, PersistentCookieStore cookieStore) {
         client.setCookieStore(cookieStore);
