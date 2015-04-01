@@ -19,5 +19,7 @@
 
     <string name="action_share">Share</string>
     <string name="action_reply">Reply</string>
+    <string name="action_tracking">Music is being tracked</string>
+    <string name="action_not_tracking">Click to start tracking music</string>
     <string name="missing_credentials">Missing credentials</string>
 </resources>

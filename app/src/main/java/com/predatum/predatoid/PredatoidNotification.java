@@ -56,7 +56,7 @@ public class PredatoidNotification {
 
                 // Set appropriate defaults for the notification light, sound,
                 // and vibration.
-                .setDefaults(Notification.DEFAULT_ALL)
+                .setDefaults(Notification.DEFAULT_LIGHTS)
 
                         // Set required fields, including the small icon, the
                         // notification title, and text.
@@ -81,22 +81,13 @@ public class PredatoidNotification {
                         // a single type.
                 .setNumber(number)
 
-                        // If this notification relates to a past or upcoming event, you
-                        // should set the relevant time information using the setWhen
-                        // method below. If this call is omitted, the notification's
-                        // timestamp will by set to the time at which it was shown.
-                        // TODO: Call setWhen if this notification relates to a past or
-                        // upcoming event. The sole argument to this method should be
-                        // the notification timestamp in milliseconds.
-                        //.setWhen(...)
-
                         // Set the pending intent to be initiated when the user touches
                         // the notification.
                 .setContentIntent(
                         PendingIntent.getActivity(
                                 context,
                                 0,
-                                new Intent(Intent.ACTION_VIEW, Uri.parse("http://www.google.com")),
+                                new Intent(Intent.ACTION_VIEW, Uri.parse("http://predatum.net")),
                                 PendingIntent.FLAG_UPDATE_CURRENT))
 
                         // Example additional actions for this notification. These will
@@ -113,10 +104,6 @@ public class PredatoidNotification {
                                 Intent.createChooser(new Intent(context, SettingsActivity.class)
                                         , "Settings"),
                                 PendingIntent.FLAG_UPDATE_CURRENT))
-                .addAction(
-                        R.drawable.ic_action_stat_reply,
-                        res.getString(R.string.action_reply),
-                        null)
 
                         // Automatically dismiss the notification when it is touched.
                 .setAutoCancel(true);

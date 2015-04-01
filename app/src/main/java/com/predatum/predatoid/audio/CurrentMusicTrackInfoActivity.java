@@ -22,7 +22,6 @@ import java.text.Format;
 import java.text.SimpleDateFormat;
 
 
-
 /**
  * Created by marcos on 3/13/15.
  */
@@ -153,6 +152,7 @@ public class CurrentMusicTrackInfoActivity extends Activity {
         String album;
         long duration;
         String filePath;
+
         public AudioFile(long id, String artist, String title, String album, long duration, String filePath) {
             this.id = id;
             this.artist = artist;
@@ -161,24 +161,31 @@ public class CurrentMusicTrackInfoActivity extends Activity {
             this.duration = duration;
             this.filePath = filePath;
         }
+
         public long getId() {
             return id;
         }
+
         public String getArtist() {
             return artist;
         }
+
         public String getTitle() {
             return title;
         }
+
         public String getAlbum() {
             return album;
         }
+
         public long getDuration() {
             return duration;
         }
+
         public String getFilePath() {
             return filePath;
         }
+
         public Uri getURI() {
             return ContentUris.withAppendedId(
                     android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id);

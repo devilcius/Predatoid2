@@ -6,7 +6,6 @@ import android.os.Build;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.loopj.android.http.AsyncHttpClient;
 import com.loopj.android.http.JsonHttpResponseHandler;
 import com.loopj.android.http.PersistentCookieStore;
 import com.loopj.android.http.RequestParams;
@@ -24,7 +23,6 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.util.EntityUtils;
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -44,11 +42,8 @@ public class Predatum {
     private static final String PREDATUM_LOGIN_CONTEXT = "user/authenticate";
     private static final String PREDATUM_USER_CHECK = "user/check";
     private static final String PREDATUM_SONG_POST_CONTEXT = "scrobbler";
-
     private static Predatum instance = null;
     private static int currentSongId = -1;
-
-    final String TAG = "Predatum connector";
 
     /**
      * Returns singleton instance of this class
@@ -60,12 +55,12 @@ public class Predatum {
         return instance;
     }
 
-    public void authenticateToPredatum(final String userName,
-                                       final String userPassword, final Context context) throws JSONException {
+    public void checkPredatumConnection(final String userName,
+                                        final String userPassword, final Context context) throws JSONException {
 
         final PersistentCookieStore predatumPersistentCookieStore = new PersistentCookieStore(
                 context);
-        if (!userIsLoggedIn(predatumPersistentCookieStore)) {
+        if (!cookieExists(predatumPersistentCookieStore)) {
             this.login(userName, userPassword, context);
         } else { //double check user is indeed logged in
             PredatumRestClient.get(PREDATUM_USER_CHECK, null, this.getPredatoidUserAgent(context),
@@ -100,33 +95,21 @@ public class Predatum {
                             if(responseBody != null) {
                                 String errorMessage = new String(responseBody);
                                 Log.e(getClass().getSimpleName(), "Response body " + errorMessage);
+                            } else {
+                                Log.e(getClass().getSimpleName(), error.toString());
                             }
-                            error.printStackTrace(System.out);
                         }
 
                     }, predatumPersistentCookieStore);
         }
     }
-
     public void updateNowPlaying(HashMap<String, Object> song, final Context context)
-            throws ClientProtocolException, IOException, JSONException {
+            throws IOException, JSONException {
 
-        Iterator<Entry<String, Object>> iterator = song.entrySet().iterator();
-        final List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
-
-        JSONObject jsonParams = new JSONObject();
+        JSONObject jsonParams = new JSONObject(song);
         StringEntity entity = new StringEntity(jsonParams.toString());
         final PersistentCookieStore predatumPersistentCookieStore = new PersistentCookieStore(
                 context);
-
-        while (iterator.hasNext()) {
-            @SuppressWarnings("rawtypes")
-            HashMap.Entry pairs = (HashMap.Entry) iterator.next();
-            jsonParams.put(pairs.getKey().toString(), pairs.getValue().toString());
-            nameValuePairs.add(new BasicNameValuePair(
-                    pairs.getKey().toString(), pairs.getValue().toString()));
-            iterator.remove(); // avoids a ConcurrentModificationException
-        }
 
         PredatumRestClient.post(context, PREDATUM_SONG_POST_CONTEXT, entity, this.getPredatoidUserAgent(context),
                 new JsonHttpResponseHandler() {
@@ -174,7 +157,7 @@ public class Predatum {
         );
     }
 
-    private boolean userIsLoggedIn(PersistentCookieStore cookieStore) {
+    private boolean cookieExists(PersistentCookieStore cookieStore) {
 
         List<Cookie> predatumCookies = cookieStore.getCookies();
         return predatumCookies.size() >= 1;
@@ -230,7 +213,7 @@ public class Predatum {
         params.put("remember", "1");
         PersistentCookieStore predatumPersistentCookieStore = new PersistentCookieStore(
                 context);
-        if (!userIsLoggedIn(predatumPersistentCookieStore)) {
+        if (!cookieExists(predatumPersistentCookieStore)) {
             predatumPersistentCookieStore.clear();
         }
         PredatumRestClient.post(PREDATUM_LOGIN_CONTEXT, params, getPredatoidUserAgent(context),
@@ -253,7 +236,7 @@ public class Predatum {
 
                         } catch (JSONException jsonException) {
                             JSONObject dumpMessage = message;
-                            Log.e(TAG, jsonException.getMessage());
+                            Log.e(getClass().getSimpleName(), jsonException.getMessage());
                         }
                     }
 
@@ -261,7 +244,7 @@ public class Predatum {
                     public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable
                             error) {
                         for (StackTraceElement ste : error.getStackTrace()) {
-                            Log.e(TAG, responseBody.toString());
+                            Log.e(getClass().getSimpleName(), responseBody.toString());
                             Log.e(this.getClass().getName(), ste.toString());
                         }
                     }

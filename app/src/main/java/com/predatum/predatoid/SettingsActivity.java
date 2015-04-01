@@ -37,8 +37,8 @@ public class SettingsActivity extends PreferenceActivity {
      */
     private static final boolean ALWAYS_SIMPLE_PREFS = false;
     private static final String ENABLED_KEY = "enabled";
-    private static final String PREDATUM_USERNAME_KEY = "predatum_username";
-    private static final String PREDATUM_PASSWORD_KEY = "predatum_password";
+    public static final String PREDATUM_USERNAME_KEY = "predatum_username";
+    public static final String PREDATUM_PASSWORD_KEY = "predatum_password";
     /**
      * A preference value change listener that updates the preference's summary
      * to reflect its new value.
@@ -60,7 +60,9 @@ public class SettingsActivity extends PreferenceActivity {
                     return false;
                 } else {
                     try {
-                        Predatum.getInstance().authenticateToPredatum(username.getText(), password.getText(), preference.getContext());
+                        Predatum.getInstance().checkPredatumConnection(username.getText(), password.getText(), preference.getContext());
+                        PredatoidNotification notification = new PredatoidNotification();
+                        notification.notify(preference.getContext(), "You're logged in predatum as " + username.getText(), 2);
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
