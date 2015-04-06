@@ -1,4 +1,4 @@
-package com.predatum.predatoid;
+package com.predatum.predatoid.com.predatum.predatoid.net;
 
 import android.content.Context;
 import android.content.pm.PackageManager;

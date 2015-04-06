@@ -16,6 +16,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import com.predatum.predatoid.audio.SongExtraInfo;
+import com.predatum.predatoid.com.predatum.predatoid.net.Predatum;
 
 import org.json.JSONException;
 
@@ -23,6 +24,7 @@ import java.io.File;
 import java.io.IOException;
 import java.text.Format;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 
@@ -33,6 +35,8 @@ public class MusicTrackerService extends Service {
     private String password;
     private ContentResolver contentResolver;
     private final String SUPPORTED_AUDIO_FILE_TYPE = "MP3";
+    private final String SCROBBLER_PLAYING_ACTION = "play";
+    private final String SCROBBLER_STOPPED_ACTION = "stop";
 
     @Override
     public void onCreate() {
@@ -88,67 +92,79 @@ public class MusicTrackerService extends Service {
 
         @Override
         public void onReceive(Context context, Intent intent) {
-
-            String action = intent.getAction();
-            String cmd = intent.getStringExtra("command");
-            String track = intent.getStringExtra("track");
-            String artist = intent.getStringExtra("artist");
-            String album = intent.getStringExtra("album");
-
-            String queryString = MediaStore.Audio.Media.IS_MUSIC + " = 1" +
-                    " AND " + MediaStore.Audio.Media.ARTIST + " = ?" +
-                    " AND " + MediaStore.Audio.Media.ALBUM + " = ?" +
-                    " AND " + MediaStore.Audio.Media.TITLE + " = ?";
-            String[] queryStringArgs = {artist, album, track};
-            Uri uri = android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
-            Cursor cur = contentResolver.query(uri, null, queryString, queryStringArgs, null);
-            if (cur == null) { //query failed
-                Log.e(getClass().getSimpleName(), "Failed to retrieve music: cursor is null :-(");
-                return;
-            }
-            if (!cur.moveToFirst()) { //nothing to query
-                Log.e(getClass().getSimpleName(), "Failed to move cursor to first row (no query results).");
-                return;
-            }
-            // retrieve the indices of the columns where the ID, title, etc. of the song are
-            int artistColumn = cur.getColumnIndex(MediaStore.Audio.Media.ARTIST);
-            int titleColumn = cur.getColumnIndex(MediaStore.Audio.Media.TITLE);
-            int albumColumn = cur.getColumnIndex(MediaStore.Audio.Media.ALBUM);
-            int durationColumn = cur.getColumnIndex(MediaStore.Audio.Media.DURATION);
-            int filePathColumn = cur.getColumnIndex(MediaStore.Audio.Media.DATA);
-            int yearColumn = cur.getColumnIndex(MediaStore.Audio.Media.YEAR);
-            int sizeColumn = cur.getColumnIndex(MediaStore.Audio.Media.SIZE);
-            int trackColumn = cur.getColumnIndex(MediaStore.Audio.Media.TRACK);
+            String intentAction = intent.getAction();
+            String scrobblerAction = SCROBBLER_STOPPED_ACTION;
             HashMap<String, Object> songToPost = new HashMap<>();
+            if (!hasPlayStateChanged(intentAction)) {
+                return;
+            }
+            Log.d("BUH", String.format("%s: %s", "Action",
+                    intentAction));
+            for (String key : intent.getExtras().keySet()) {
+                Object value = intent.getExtras().get(key);
+                Log.d("BUH", String.format("%s %s (%s)", key,
+                        value.toString(), value.getClass().getName()));
+            }
 
-            // only one result needed
-            String filePath = cur.getString(filePathColumn);
-            songToPost.put("artist", cur.getString(artistColumn));
-            songToPost.put("title", cur.getString(titleColumn));
-            songToPost.put("album", cur.getString(albumColumn));
-            songToPost.put("duration", (cur.getInt(durationColumn)) / 1000);
-            songToPost.put("year", cur.getInt(yearColumn));
-            songToPost.put("file_size", cur.getInt(sizeColumn));
+            boolean isPlaying = intent.getBooleanExtra("isplaying", false);
 
-            File audioFile = new File(filePath);
-            songToPost.put("file_type", SUPPORTED_AUDIO_FILE_TYPE);
-            Log.i(getClass().getSimpleName(), "Done querying media. MusicRetriever is ready.");
-            Date fileDate = new Date(audioFile.lastModified());
-            Format formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            SongExtraInfo songExtraInfo = new SongExtraInfo(audioFile);
-            songToPost.put("folder_path", audioFile.getParent());
-            songToPost.put("file_date", formatter.format(fileDate));
-            songToPost.put("genre", songExtraInfo.getSongGenre());
-            songToPost.put("is_lame_encoded", songExtraInfo.isLameEncoded());
-            songToPost.put("quality", songExtraInfo.getLamePreset());
-            songToPost.put("bitrate", songExtraInfo.getBitrate());
-            songToPost.put("start_time", formatter.format(new Date()));
-            songToPost.put("file_name", audioFile.getName());
-            songToPost.put("track", songExtraInfo.getTrackNumber());
-            //TODO: set action according to state
-            songToPost.put("action", "play");
-            cur.close();
+            if (isPlaying) {
+                scrobblerAction = SCROBBLER_PLAYING_ACTION;
+                String track = intent.getStringExtra("track");
+                String artist = intent.getStringExtra("artist");
+                String album = intent.getStringExtra("album");
 
+                String queryString = MediaStore.Audio.Media.IS_MUSIC + " = 1" +
+                        " AND " + MediaStore.Audio.Media.ARTIST + " = ?" +
+                        " AND " + MediaStore.Audio.Media.ALBUM + " = ?" +
+                        " AND " + MediaStore.Audio.Media.TITLE + " = ?";
+                String[] queryStringArgs = {artist, album, track};
+                Uri uri = android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+                Cursor cur = contentResolver.query(uri, null, queryString, queryStringArgs, null);
+                if (cur == null) { //query failed
+                    Log.e(getClass().getSimpleName(), "Failed to retrieve music: cursor is null :-(");
+                    return;
+                }
+                if (!cur.moveToFirst()) { //nothing to query
+                    Log.e(getClass().getSimpleName(), "Failed to move cursor to first row (no query results).");
+                    return;
+                }
+                // retrieve the indices of the columns where the ID, title, etc. of the song are
+                int artistColumn = cur.getColumnIndex(MediaStore.Audio.Media.ARTIST);
+                int titleColumn = cur.getColumnIndex(MediaStore.Audio.Media.TITLE);
+                int albumColumn = cur.getColumnIndex(MediaStore.Audio.Media.ALBUM);
+                int durationColumn = cur.getColumnIndex(MediaStore.Audio.Media.DURATION);
+                int filePathColumn = cur.getColumnIndex(MediaStore.Audio.Media.DATA);
+                int yearColumn = cur.getColumnIndex(MediaStore.Audio.Media.YEAR);
+                int sizeColumn = cur.getColumnIndex(MediaStore.Audio.Media.SIZE);
+
+                // only one result needed
+                String filePath = cur.getString(filePathColumn);
+                songToPost.put("artist", cur.getString(artistColumn));
+                songToPost.put("title", cur.getString(titleColumn));
+                songToPost.put("album", cur.getString(albumColumn));
+                songToPost.put("duration", (cur.getInt(durationColumn)) / 1000);
+                songToPost.put("year", cur.getInt(yearColumn));
+                songToPost.put("file_size", cur.getInt(sizeColumn));
+
+                File audioFile = new File(filePath);
+                songToPost.put("file_type", SUPPORTED_AUDIO_FILE_TYPE);
+                Log.i(getClass().getSimpleName(), "Done querying media. MusicRetriever is ready.");
+                Date fileDate = new Date(audioFile.lastModified());
+                Format formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                SongExtraInfo songExtraInfo = new SongExtraInfo(audioFile);
+                songToPost.put("folder_path", audioFile.getParent());
+                songToPost.put("file_date", formatter.format(fileDate));
+                songToPost.put("genre", songExtraInfo.getSongGenre());
+                songToPost.put("is_lame_encoded", songExtraInfo.isLameEncoded());
+                songToPost.put("quality", songExtraInfo.getLamePreset());
+                songToPost.put("bitrate", songExtraInfo.getBitrate());
+                songToPost.put("start_time", formatter.format(new Date()));
+                songToPost.put("file_name", audioFile.getName());
+                songToPost.put("track", songExtraInfo.getTrackNumber());
+                cur.close();
+            }
+            songToPost.put("action", scrobblerAction);
             try {
                 Predatum.getInstance().updateNowPlaying(songToPost, getApplicationContext());
             } catch (IOException error) {
@@ -184,5 +200,11 @@ public class MusicTrackerService extends Service {
         intentFilter.addAction("com.htc.music.musicservicecommand");
 
         return intentFilter;
+    }
+
+    private boolean hasPlayStateChanged(String action) {
+        String[] stateChangedActions = {"com.android.music.playstatechanged", "com.htc.music.playstatechanged"};
+
+        return Arrays.asList(stateChangedActions).contains(action);
     }
 }
