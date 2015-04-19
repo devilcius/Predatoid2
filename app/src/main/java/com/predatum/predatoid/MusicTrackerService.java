@@ -8,6 +8,8 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
@@ -48,6 +50,10 @@ public class MusicTrackerService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        if(!this.isNetworkConnected())
+        {
+            return START_FLAG_RETRY;
+        }
         String notificationMessage;
         if (username.isEmpty() || password.isEmpty()) {
             Toast.makeText(getApplicationContext(), R.string.missing_credentials,
@@ -83,7 +89,15 @@ public class MusicTrackerService extends Service {
         contentResolver = this.getContentResolver();
         registerReceiver(receiver, getIntentFilter());
     }
-
+    private boolean isNetworkConnected() {
+        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
+        if (networkInfo == null) {
+            // There are no active networks.
+            return false;
+        } else
+            return true;
+    }
     private BroadcastReceiver receiver = new BroadcastReceiver() {
 
         @Override
