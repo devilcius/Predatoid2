@@ -112,12 +112,8 @@ public class MusicTrackerService extends Service {
             if (!hasPlayStateChanged(intentAction)) {
                 return;
             }
-            Log.d("BUH", String.format("%s: %s", "Action",
-                    intentAction));
             for (String key : intent.getExtras().keySet()) {
                 Object value = intent.getExtras().get(key);
-                Log.d("BUH", String.format("%s %s (%s)", key,
-                        value.toString(), value.getClass().getName()));
             }
 
             boolean isPlaying = intent.getBooleanExtra("isplaying", false);
@@ -158,7 +154,6 @@ public class MusicTrackerService extends Service {
                 songToPost.put("title", cur.getString(titleColumn));
                 songToPost.put("album", cur.getString(albumColumn));
                 songToPost.put("duration", (cur.getInt(durationColumn)) / 1000);
-                songToPost.put("year", cur.getInt(yearColumn));
                 songToPost.put("file_size", cur.getInt(sizeColumn));
 
                 File audioFile = new File(filePath);
@@ -170,6 +165,7 @@ public class MusicTrackerService extends Service {
                 songToPost.put("folder_path", audioFile.getParent());
                 songToPost.put("file_date", formatter.format(fileDate));
                 songToPost.put("genre", songExtraInfo.getSongGenre());
+                songToPost.put("year", songExtraInfo.getYear());
                 songToPost.put("is_lame_encoded", songExtraInfo.isLameEncoded());
                 songToPost.put("quality", songExtraInfo.getLamePreset());
                 songToPost.put("bitrate", songExtraInfo.getBitrate());

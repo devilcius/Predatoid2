@@ -44,6 +44,11 @@ public class SongExtraInfo {
 
     }
 
+    public String getYear() {
+
+        return audioFile.getTag().getFirst(FieldKey.YEAR);
+    }
+
     public Long getBitrate() {
 
         return mp3AudioHeader.getBitRateAsNumber();
