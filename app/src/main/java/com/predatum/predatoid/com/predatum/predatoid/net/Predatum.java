@@ -1,4 +1,4 @@
-package com.predatum.predatoid;
+package com.predatum.predatoid.com.predatum.predatoid.net;
 
 import android.content.Context;
 import android.content.pm.PackageManager.NameNotFoundException;
@@ -20,18 +20,14 @@ import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.cookie.Cookie;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.util.EntityUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map.Entry;
 
 /**
  * Predatum.com connector

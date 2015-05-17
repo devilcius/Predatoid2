@@ -13,6 +13,8 @@ import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
 import android.widget.Toast;
 
+import com.predatum.predatoid.com.predatum.predatoid.net.Predatum;
+
 import org.json.JSONException;
 
 import java.util.List;
