@@ -26,30 +26,20 @@ public class PredatoidNotification {
      * The unique identifier for this type of notification.
      */
     private static final String NOTIFICATION_TAG = "Predatoid";
+    /**
+     * Action name to close predatoid.
+     */
+    public static final String EXIT_PREDATOID_ACTION = "com.predatum.predatoid.EXIT_PREDATOID";
 
     /**
      * Shows the notification, or updates a previously shown notification of
      * this type, with the given parameters.
-     * <p/>
-     * TODO: Customize this method's arguments to present relevant content in
-     * the notification.
-     * <p/>
-     * TODO: Customize the contents of this method to tweak the behavior and
-     * presentation of predatoid notifications. Make
-     * sure to follow the
-     * <a href="https://developer.android.com/design/patterns/notifications.html">
-     * Notification design guidelines</a> when doing so.
      *
      * @see #cancel(Context)
      */
     public void notify(final Context context,
                               final String credentialMessage, final int number) {
         final Resources res = context.getResources();
-
-        // This image is used as the notification's large icon (thumbnail).
-        // TODO: Remove this if your notification has no relevant thumbnail.
-        final Bitmap picture = BitmapFactory.decodeResource(res, R.drawable.ic_action_ferret);
-
         final String title = res.getString(R.string.app_name);
 
         final NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
@@ -68,14 +58,10 @@ public class PredatoidNotification {
 
                         // Use a default priority (recognized on devices running Android
                         // 4.1 or later)
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-
-                        // Provide a large icon, shown with the notification in the
-                        // notification drawer on devices running Android 3.0 or later.
-                .setLargeIcon(picture)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
 
                         // Set ticker text (preview) information for this notification.
-                .setTicker(credentialMessage)
+  //              .setTicker(credentialMessage)
 
                         // Show a number. This is useful when stacking notifications of
                         // a single type.
@@ -87,26 +73,32 @@ public class PredatoidNotification {
                         PendingIntent.getActivity(
                                 context,
                                 0,
-                                new Intent(Intent.ACTION_VIEW, Uri.parse("http://predatum.net")),
+                                new Intent(context, SettingsActivity.class),
                                 PendingIntent.FLAG_UPDATE_CURRENT))
-
-                        // Example additional actions for this notification. These will
-                        // only show on devices running Android 4.1 or later, so you
-                        // should ensure that the activity in this notification's
-                        // content intent provides access to the same actions in
-                        // another way.
+                .setStyle(new NotificationCompat.BigTextStyle()
+                        .bigText(credentialMessage))
                 .addAction(
-                        R.drawable.ic_action_settings,
-                        res.getString(R.string.action_settings),
-                        PendingIntent.getActivity(
+                        R.drawable.ic_action_exit,
+                        res.getString(R.string.action_exit),
+                        PendingIntent.getService(
                                 context,
-                                0,
-                                Intent.createChooser(new Intent(context, SettingsActivity.class)
-                                        , "Settings"),
-                                PendingIntent.FLAG_UPDATE_CURRENT))
-
-                        // Automatically dismiss the notification when it is touched.
-                .setAutoCancel(true);
+                                1,
+                                new Intent(context, MusicTrackerService.class)
+                                        .setAction(EXIT_PREDATOID_ACTION),
+                                PendingIntent.FLAG_UPDATE_CURRENT
+                        )
+                )
+                                .addAction(
+                                        R.drawable.ic_action_settings,
+                                        res.getString(R.string.action_settings),
+                                        PendingIntent.getActivity(
+                                                context,
+                                                0,
+                                                Intent.createChooser(new Intent(context, SettingsActivity.class)
+                                                        , "Settings"),
+                                                PendingIntent.FLAG_UPDATE_CURRENT))
+                                .setAutoCancel(false)
+                                .setOngoing(true);
 
         notify(context, builder.build());
     }

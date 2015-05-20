@@ -26,9 +26,11 @@ import java.io.File;
 import java.io.IOException;
 import java.text.Format;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Objects;
 
 
 public class MusicTrackerService extends Service {
@@ -36,13 +38,14 @@ public class MusicTrackerService extends Service {
     private String username;
     private String password;
     private ContentResolver contentResolver;
+    private SharedPreferences prefs;
     private final String SUPPORTED_AUDIO_FILE_TYPE = "MP3";
     private final String SCROBBLER_PLAYING_ACTION = "play";
     private final String SCROBBLER_STOPPED_ACTION = "stop";
 
     @Override
     public void onCreate() {
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         username = prefs.getString(SettingsActivity.PREDATUM_USERNAME_KEY, "");
         password = prefs.getString(SettingsActivity.PREDATUM_PASSWORD_KEY, "");
     }
@@ -51,12 +54,19 @@ public class MusicTrackerService extends Service {
     public IBinder onBind(Intent intent) {
         return null;
     }
-
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if(!this.isNetworkConnected())
         {
             return START_FLAG_RETRY;
+        }
+        PredatoidNotification notification = new PredatoidNotification();
+        if(intent.getAction() != null && intent.getAction().equals(PredatoidNotification.EXIT_PREDATOID_ACTION)) {
+            //cancel notification just in case
+            notification.cancel(this);
+            stopSelf();
+
+            return START_NOT_STICKY;
         }
         String notificationMessage;
         if (username.isEmpty() || password.isEmpty()) {
@@ -67,7 +77,6 @@ public class MusicTrackerService extends Service {
             this.connectToPredatum();
             notificationMessage = "You're connected to predatum as " + username;
         }
-        PredatoidNotification notification = new PredatoidNotification();
         notification.notify(this, notificationMessage, 2);
         this.startTracking();
 
@@ -106,17 +115,23 @@ public class MusicTrackerService extends Service {
 
         @Override
         public void onReceive(Context context, Intent intent) {
+            if(!prefs.getBoolean("enabled", false))
+            {
+                return;
+            }
             String intentAction = intent.getAction();
             String scrobblerAction = SCROBBLER_STOPPED_ACTION;
             HashMap<String, Object> songToPost = new HashMap<>();
             if (!hasPlayStateChanged(intentAction)) {
                 return;
             }
+            ArrayList<Object> extras = new ArrayList<Object>();
             for (String key : intent.getExtras().keySet()) {
-                Object value = intent.getExtras().get(key);
+                extras.add(key);
+                extras.add(intent.getExtras().get(key));
             }
 
-            boolean isPlaying = intent.getBooleanExtra("isplaying", false);
+            boolean isPlaying = intent.getBooleanExtra("isplaying", false) || intent.getBooleanExtra("playing", false);
 
             if (isPlaying) {
                 scrobblerAction = SCROBBLER_PLAYING_ACTION;
@@ -187,7 +202,6 @@ public class MusicTrackerService extends Service {
 
     private IntentFilter getIntentFilter() {
         IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction("com.android.music.metachanged");
         intentFilter.addAction("com.htc.music.metachanged");
         intentFilter.addAction("fm.last.android.metachanged");
         intentFilter.addAction("com.sec.android.app.music.metachanged");

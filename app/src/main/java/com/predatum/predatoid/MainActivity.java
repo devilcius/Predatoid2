@@ -14,8 +14,9 @@ public class MainActivity extends Activity {
         startService(musicTrackerService);
     }
 
-/*    @Override
-    protected void onStart() {
-        finish();
-    }*/
+//    @Override
+//    protected void onStart() {
+//        startActivity(new Intent(this, SettingsActivity.class));
+//    }
 }
+
