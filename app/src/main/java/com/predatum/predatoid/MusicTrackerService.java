@@ -30,18 +30,23 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Objects;
 
 
 public class MusicTrackerService extends Service {
 
     private String username;
     private String password;
+    private boolean isResumed = false;
+    private boolean mustBeTracked = false;
     private ContentResolver contentResolver;
     private SharedPreferences prefs;
+    private final int DEFAULT_SONG_ID = 0;
     private final String SUPPORTED_AUDIO_FILE_TYPE = "MP3";
     private final String SCROBBLER_PLAYING_ACTION = "play";
     private final String SCROBBLER_STOPPED_ACTION = "stop";
+    private final String SCROBBLER_RESUMED_ACTION = "resume";
+    private String scrobblerAction = SCROBBLER_STOPPED_ACTION;
+    private long songId = DEFAULT_SONG_ID;
 
     @Override
     public void onCreate() {
@@ -61,7 +66,7 @@ public class MusicTrackerService extends Service {
             return START_FLAG_RETRY;
         }
         PredatoidNotification notification = new PredatoidNotification();
-        if(intent.getAction() != null && intent.getAction().equals(PredatoidNotification.EXIT_PREDATOID_ACTION)) {
+        if(intent != null && intent.getAction() != null && intent.getAction().equals(PredatoidNotification.EXIT_PREDATOID_ACTION)) {
             //cancel notification just in case
             notification.cancel(this);
             stopSelf();
@@ -102,6 +107,7 @@ public class MusicTrackerService extends Service {
         contentResolver = this.getContentResolver();
         registerReceiver(receiver, getIntentFilter());
     }
+
     private boolean isNetworkConnected() {
         ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
@@ -111,6 +117,7 @@ public class MusicTrackerService extends Service {
         } else
             return true;
     }
+
     private BroadcastReceiver receiver = new BroadcastReceiver() {
 
         @Override
@@ -120,20 +127,21 @@ public class MusicTrackerService extends Service {
                 return;
             }
             String intentAction = intent.getAction();
-            String scrobblerAction = SCROBBLER_STOPPED_ACTION;
             HashMap<String, Object> songToPost = new HashMap<>();
-            if (!hasPlayStateChanged(intentAction)) {
-                return;
-            }
-            ArrayList<Object> extras = new ArrayList<Object>();
+            /** debugging **/
+            ArrayList<Object> extras = new ArrayList<>();
             for (String key : intent.getExtras().keySet()) {
                 extras.add(key);
                 extras.add(intent.getExtras().get(key));
             }
-
+            /** ends debugging  **/
             boolean isPlaying = intent.getBooleanExtra("isplaying", false) || intent.getBooleanExtra("playing", false);
-
-            if (isPlaying) {
+            long currentSongId = intent.getExtras().getLong("id");
+            handleStateChange(intentAction, currentSongId, isPlaying);
+            if(!mustBeTracked) {
+                return;
+            }
+            if (isPlaying && !isResumed) {
                 scrobblerAction = SCROBBLER_PLAYING_ACTION;
                 String track = intent.getStringExtra("track");
                 String artist = intent.getStringExtra("artist");
@@ -160,7 +168,6 @@ public class MusicTrackerService extends Service {
                 int albumColumn = cur.getColumnIndex(MediaStore.Audio.Media.ALBUM);
                 int durationColumn = cur.getColumnIndex(MediaStore.Audio.Media.DURATION);
                 int filePathColumn = cur.getColumnIndex(MediaStore.Audio.Media.DATA);
-                int yearColumn = cur.getColumnIndex(MediaStore.Audio.Media.YEAR);
                 int sizeColumn = cur.getColumnIndex(MediaStore.Audio.Media.SIZE);
 
                 // only one result needed
@@ -226,9 +233,24 @@ public class MusicTrackerService extends Service {
         return intentFilter;
     }
 
-    private boolean hasPlayStateChanged(String action) {
+    private void handleStateChange(String action, long songId, boolean isPlaying) {
         String[] stateChangedActions = {"com.android.music.playstatechanged", "com.htc.music.playstatechanged"};
+        mustBeTracked = Arrays.asList(stateChangedActions).contains(action); //from stopped to playing or viceversa
 
-        return Arrays.asList(stateChangedActions).contains(action);
+        if(mustBeTracked && isPlaying && (songId == this.songId)) { //song has been resumed
+            isResumed = true;
+            scrobblerAction = SCROBBLER_RESUMED_ACTION;
+        } else if(isPlaying && (songId != this.songId)) { //new song played
+            isResumed = false;
+            mustBeTracked = true;
+            this.songId = songId;
+        } else if(mustBeTracked && !isPlaying) { //song stopped
+            scrobblerAction = SCROBBLER_STOPPED_ACTION;
+        } else if(!mustBeTracked && isPlaying && (songId != this.songId)) { //next song played
+            this.songId = songId;
+            isResumed = false;
+        } else {
+            mustBeTracked = false;
+        }
     }
 }
