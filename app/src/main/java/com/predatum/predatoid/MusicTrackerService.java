@@ -11,6 +11,7 @@ import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.provider.MediaStore;
@@ -128,15 +129,19 @@ public class MusicTrackerService extends Service {
             }
             String intentAction = intent.getAction();
             HashMap<String, Object> songToPost = new HashMap<>();
+            Bundle extras = intent.getExtras();
+            if(extras == null) {
+                return;
+            }
             /** debugging **/
-            ArrayList<Object> extras = new ArrayList<>();
-            for (String key : intent.getExtras().keySet()) {
-                extras.add(key);
-                extras.add(intent.getExtras().get(key));
+            ArrayList<Object> extrasList = new ArrayList<>();
+            for (String key : extras.keySet()) {
+                extrasList.add(key);
+                extrasList.add(extras.get(key));
             }
             /** ends debugging  **/
             boolean isPlaying = intent.getBooleanExtra("isplaying", false) || intent.getBooleanExtra("playing", false);
-            long currentSongId = intent.getExtras().getLong("id");
+            long currentSongId = extras.getLong("id");
             handleStateChange(intentAction, currentSongId, isPlaying);
             if(!mustBeTracked) {
                 return;
