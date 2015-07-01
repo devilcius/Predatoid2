@@ -57,7 +57,9 @@ public class SongExtraInfo {
 
     public boolean isLameEncoded() {
 
-        return mp3AudioHeader.getEncoder().substring(0, 4).equals(LAME_ID);
+        String encoder = mp3AudioHeader.getEncoder();
+
+        return encoder.length() >= 4 && encoder.substring(0, 4).equals(LAME_ID);
     }
 
     public String getLamePreset() {
