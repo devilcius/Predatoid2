@@ -34,7 +34,7 @@ import java.util.List;
  */
 public class Predatum {
 
-    private static final String PREDATUM_URL = "http://predatum.net";
+    private static final String PREDATUM_URL = "https://predatum.com";
     private static final String PREDATUM_LOGIN_CONTEXT = "user/authenticate";
     private static final String PREDATUM_USER_CHECK = "user/check";
     private static final String PREDATUM_SONG_POST_CONTEXT = "scrobbler";
